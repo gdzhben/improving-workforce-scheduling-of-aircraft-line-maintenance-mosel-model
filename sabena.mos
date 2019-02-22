@@ -1,0 +1,105 @@
+model sabena
+ uses "mmxprs", "mmsheet","mmnl"
+
+parameters
+  dir = 'mmsheet.xls:mosel_data.xls'
+end-parameters
+
+declarations
+    size_of_dataset = 1..200                    ! Range of ores
+    hours_of_a_day = 0..23
+    ! days_in_week = 1..7
+
+    FlightNo: array(size_of_dataset) of string      ! Unit cost of ores
+    Airline: array(size_of_dataset) of string     ! Availability of ores
+    STADay: array(size_of_dataset) of real     ! Grade of ores (measured per unit of mass)
+    STATime: array(size_of_dataset) of real
+    STDDay: array(size_of_dataset) of real     ! Grade of ores (measured per unit of mass)
+    STDTime: array(size_of_dataset) of real
+    Demand:array(size_of_dataset) of real
+    NoHoursStayed:array(size_of_dataset) of real
+    DemandEachHour:array(size_of_dataset) of real
+
+    ShiftCostDay: array(1..1) of real
+    ShiftCostMorning: array(1..1) of real
+    ShiftCostEvening: array(1..1) of real
+    ShiftCostNight: array(1..1) of real
+
+    demand_monday: array(hours_of_a_day) of real
+    demand_tuesday: array(hours_of_a_day) of real
+    demand_wednesday: array(hours_of_a_day) of real
+    demand_thursday: array(hours_of_a_day) of real
+    demand_friday: array(hours_of_a_day) of real
+    demand_saturday: array(hours_of_a_day) of real
+    demand_sunday: array(hours_of_a_day) of real
+
+
+end-declarations
+
+
+initializations from dir
+  [FlightNo,Airline,STADay,STATime,STDDay,STDTime,Demand,NoHoursStayed] as "[Sheet1$A2:I300]"
+  [ShiftCostMorning,ShiftCostDay,ShiftCostEvening,ShiftCostNight] as "[Sheet2$A2:E4]"
+end-initializations
+         
+
+forall(i in size_of_dataset) do
+    NoHoursStayed(i) := NoHoursStayed(i) / 100
+    DemandEachHour(i) := Demand(i)/ NoHoursStayed(i)
+end-do
+
+forall(i in size_of_dataset,j in hours_of_a_day) do
+        if STADay(i) = 1 then
+            if STATime(i) <= j*100 or STDTime(i) > j*100  then
+            demand_monday(j) := demand_monday(j) + DemandEachHour(i)
+            end-if
+        elif STADay(i) = 2 then
+            if STATime(i) <= j*100 or STDTime(i) > j*100  then
+            demand_tuesday(j) := demand_tuesday(j) + DemandEachHour(i)
+            end-if
+        elif STADay(i) = 3 then
+            if STATime(i) <= j*100 or STDTime(i) > j*100  then
+            demand_wednesday(j) := demand_wednesday(j) + DemandEachHour(i)
+            end-if
+        elif STADay(i) = 4 then
+            if STATime(i) <= j*100 or STDTime(i) > j*100  then
+            demand_thursday(j) := demand_thursday(j) + DemandEachHour(i)
+            end-if
+        elif STADay(i) = 5 then
+            if STATime(i) <= j*100 or STDTime(i) > j*100  then
+            demand_friday(j) := demand_friday(j) + DemandEachHour(i)
+            end-if
+        elif STADay(i) = 6 then
+            if STATime(i) <= j*100 or STDTime(i) > j*100  then
+            demand_saturday(j) := demand_saturday(j) + DemandEachHour(i)
+            end-if
+        else
+            if STATime(i) <= j*100 or STDTime(i) > j*100  then
+            demand_sunday(j) := demand_sunday(j) + DemandEachHour(i)
+            end-if
+        end-if
+end-do
+
+
+
+! ! Objective: minimize cost
+!  MaxVal:= 50*coats + 40*jackets
+!  10*coats + 4*jackets <= 200
+!  3*coats + 5*jackets <= 150
+
+writeln(FlightNo,"\n",Airline,"\n", STADay,"\n",STATime ,"\n",STDDay ,"\n",STDTime,"\n",Demand,"\n",NoHoursStayed,"\n",DemandEachHour)
+
+writeln(demand_monday,"\n",demand_tuesday,"\n", demand_wednesday,"\n",demand_thursday ,"\n",demand_friday ,"\n",demand_saturday,"\n",demand_sunday)
+
+writeln(ShiftCostMorning,ShiftCostDay,ShiftCostEvening,ShiftCostNight)
+
+! ! All variables are 0/1
+! coats is_integer
+! jackets is_integer
+
+!  maximize(MaxVal)                 ! Solve the MIP-problem
+
+! ! Print out the solution
+!  writeln("Solution:\n Objective: ", getobjval)
+!  writeln(getsol(coats), "    -    ",getsol(jackets) )
+end-model
