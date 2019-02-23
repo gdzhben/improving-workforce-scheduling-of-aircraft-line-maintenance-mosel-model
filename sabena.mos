@@ -6,15 +6,15 @@ parameters
 end-parameters
 
 declarations
-    size_of_dataset = 1..200                    ! Range of ores
+    size_of_dataset = 1..200
     hours_of_a_day = 0..23
     ! days_in_week = 1..7
 
-    FlightNo: array(size_of_dataset) of string      ! Unit cost of ores
-    Airline: array(size_of_dataset) of string     ! Availability of ores
-    STADay: array(size_of_dataset) of real     ! Grade of ores (measured per unit of mass)
+    FlightNo: array(size_of_dataset) of string
+    Airline: array(size_of_dataset) of string
+    STADay: array(size_of_dataset) of real
     STATime: array(size_of_dataset) of real
-    STDDay: array(size_of_dataset) of real     ! Grade of ores (measured per unit of mass)
+    STDDay: array(size_of_dataset) of real
     STDTime: array(size_of_dataset) of real
     Demand:array(size_of_dataset) of real
     NoHoursStayed:array(size_of_dataset) of real
@@ -25,6 +25,38 @@ declarations
     ShiftCostEvening: array(1..1) of real
     ShiftCostNight: array(1..1) of real
 
+    ShiftCostSatDay: array(1..1) of real
+    ShiftCostSatMorning: array(1..1) of real
+    ShiftCostSatEvening: array(1..1) of real
+    ShiftCostSatNight: array(1..1) of real
+
+    ShiftCostSunDay: array(1..1) of real
+    ShiftCostSunMorning: array(1..1) of real
+    ShiftCostSunEvening: array(1..1) of real
+    ShiftCostSunNight: array(1..1) of real
+
+    NightBonus: array(1..1) of real
+
+    MaxNumberOfTeam: integer
+
+
+    start_hour_morning = 0600
+    end_hour_morning = 1500
+    morning_work_hours = 9
+
+    start_hour_day = 0700
+    end_hour_day = 1500
+    day_work_hours =8
+
+    start_hour_evening = 1445
+    end_hour_evening = 2345
+    evening_work_hours = 9
+
+    start_hour_night =  2230
+    end_hour_night = 0730
+    night_work_hours = 9
+
+
     demand_monday: array(hours_of_a_day) of real
     demand_tuesday: array(hours_of_a_day) of real
     demand_wednesday: array(hours_of_a_day) of real
@@ -34,20 +66,35 @@ declarations
     demand_sunday: array(hours_of_a_day) of real
 
 
+    name_of_shift = ["MondayMorning","MondayDay","MondayEvening","MondayNight",
+    "TuesdayMorning","TuesdayDay","TuesdayEvening","TuesdayNight",
+    "WednesdayMorning","WednesdayDay","WednesdayEvening","WednesdayNight",
+    "ThursdayMorning","ThursdayDay","ThursdayEvening","ThursdayNight",
+    "FridayMorning","FridayDay","FridayEvening","FridayNight",
+    "SaturdayMorning","SaturdayDay","SaturdayEvening","SaturdayNight",
+    "SundayMorning","SundayDay","SundayEvening","SundayNight"]
+
+
+    Team: array(1..6,1..7,1..4) of mpvar
+
+
 end-declarations
 
-
+procedure reading_data_from_file
 initializations from dir
   [FlightNo,Airline,STADay,STATime,STDDay,STDTime,Demand,NoHoursStayed] as "[Sheet1$A2:I300]"
-  [ShiftCostMorning,ShiftCostDay,ShiftCostEvening,ShiftCostNight] as "[Sheet2$A2:E4]"
-end-initializations
-         
+  [ShiftCostMorning,ShiftCostDay,ShiftCostEvening,ShiftCostNight,NightBonus] as "[Sheet2$A2:F2]"
+  [ShiftCostSatDay,ShiftCostSatMorning,ShiftCostSatEvening,ShiftCostSatNight] as "[Sheet2$A3:E3]"
+  [ShiftCostSunDay,ShiftCostSunMorning,ShiftCostSunEvening,ShiftCostSunNight] as "[Sheet2$A4:E4]"
+  MaxNumberOfTeam as "[Sheet3$A2:B3]"
 
+end-initializations
+end-procedure
+procedure data_preprocessing
 forall(i in size_of_dataset) do
     NoHoursStayed(i) := NoHoursStayed(i) / 100
     DemandEachHour(i) := Demand(i)/ NoHoursStayed(i)
 end-do
-
 forall(i in size_of_dataset,j in hours_of_a_day) do
         if STADay(i) = 1 then
             if STATime(i) <= j*100 or STDTime(i) > j*100  then
@@ -79,19 +126,42 @@ forall(i in size_of_dataset,j in hours_of_a_day) do
             end-if
         end-if
 end-do
-
-
-
-! ! Objective: minimize cost
-!  MaxVal:= 50*coats + 40*jackets
-!  10*coats + 4*jackets <= 200
-!  3*coats + 5*jackets <= 150
-
+end-procedure
+procedure printing_all_data
 writeln(FlightNo,"\n",Airline,"\n", STADay,"\n",STATime ,"\n",STDDay ,"\n",STDTime,"\n",Demand,"\n",NoHoursStayed,"\n",DemandEachHour)
 
 writeln(demand_monday,"\n",demand_tuesday,"\n", demand_wednesday,"\n",demand_thursday ,"\n",demand_friday ,"\n",demand_saturday,"\n",demand_sunday)
 
-writeln(ShiftCostMorning,ShiftCostDay,ShiftCostEvening,ShiftCostNight)
+writeln(ShiftCostMorning,ShiftCostDay,ShiftCostEvening,ShiftCostNight,NightBonus)
+
+writeln(ShiftCostSatDay,ShiftCostSatMorning,ShiftCostSatEvening,ShiftCostSatNight)
+
+writeln(ShiftCostSunDay,ShiftCostSunMorning,ShiftCostSunEvening,ShiftCostSunNight)
+writeln(MaxNumberOfTeam)
+end-procedure
+
+reading_data_from_file
+data_preprocessing
+printing_all_data
+
+
+
+
+Cost := sum(i in 1..6,j in 1..5) morning_work_hours * ShiftCostMorning(1) * 6 * Team(i,j,1) +
+sum(i in 1..6,j in 1..5) day_work_hours * ShiftCostDay(1) * 6 * Team(i,j,2) +
+sum(i in 1..6,j in 1..5) evening_work_hours * ShiftCostEvening(1) * 6 * Team(i,j,3) +
+sum(i in 1..6,j in 1..5) night_work_hours * ShiftCostNight(1) * 6 * Team(i,j,4) +
+sum(i in 1..6,j in 6..6) morning_work_hours * ShiftCostSatMorning(1) * 6 * Team(i,j,1) +
+sum(i in 1..6,j in 6..6) day_work_hours * ShiftCostSatDay(1) * 6 * Team(i,j,2) +
+sum(i in 1..6,j in 6..6) evening_work_hours * ShiftCostSatDay(1) * 6 * Team(i,j,2) +
+
+
+
+
+!  10*coats + 4*jackets <= 200
+!  3*coats + 5*jackets <= 150
+
+
 
 ! ! All variables are 0/1
 ! coats is_integer
