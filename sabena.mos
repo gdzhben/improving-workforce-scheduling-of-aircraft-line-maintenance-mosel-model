@@ -140,6 +140,102 @@ writeln(ShiftCostSunDay,ShiftCostSunMorning,ShiftCostSunEvening,ShiftCostSunNigh
 writeln(MaxNumberOfTeam)
 end-procedure
 
+procedure print_result
+forall(i in 1..6)do
+writeln("")
+writeln("------------------------------------------------------")
+writeln("Team - ",i)
+writeln("MondayMorning:\t",getsol(Team(i,1,1)),"\n","MondayDay:\t",getsol(Team(i,1,2)),"\n","MondayEvening:\t",getsol(Team(i,1,3)),"\n","MondayNight:\t",getsol(Team(i,1,4)),"\n",
+    "\nTuesdayMorning:\t",getsol(Team(i,2,1)),"\n","TuesdayDay:\t",getsol(Team(i,2,2)),"\n","TuesdayEvening:\t",getsol(Team(i,2,3)),"\n","TuesdayNight:\t",getsol(Team(i,2,4)),"\n",
+    "\nWednesdayMorning:\t",getsol(Team(i,3,1)),"\n","WednesdayDay:\t",getsol(Team(i,3,2)),"\n","WednesdayEvening:\t",getsol(Team(i,3,3)),"\n","WednesdayNight:\t",getsol(Team(i,3,4)),"\n",
+    "\nThursdayMorning:\t",getsol(Team(i,4,1)),"\n","ThursdayDay:\t",getsol(Team(i,4,2)),"\n","ThursdayEvening:\t",getsol(Team(i,4,3)),"\n","ThursdayNight:\t",getsol(Team(i,4,4)),"\n",
+    "\nFridayMorning:\t",getsol(Team(i,5,1)),"\n","FridayDay:\t",getsol(Team(i,5,2)),"\n","FridayEvening:\t",getsol(Team(i,5,3)),"\n","FridayNight:\t",getsol(Team(i,5,4)),"\n",
+    "\nSaturdayMorning:\t",getsol(Team(i,6,1)),"\n","SaturdayDay:\t",getsol(Team(i,6,2)),"\n","SaturdayEvening:\t",getsol(Team(i,6,3)),"\n","SaturdayNight:\t",getsol(Team(i,6,4)),"\n",
+    "\nSundayMorning:\t",getsol(Team(i,7,1)),"\n","SundayDay:\t",getsol(Team(i,7,2)),"\n","SundayEvening:\t",getsol(Team(i,7,3)),"\n","SundayNight:\t", getsol(Team(i,7,4)),"\n")
+end-do
+writeln("------------------------------------------------------")
+writeln("")
+end-procedure
+
+
+
+TotalCost := sum(i in 1..6,j in 1..5) morning_work_hours * ShiftCostMorning(1) * 6 * Team(i,j,1) +
+sum(i in 1..6,j in 1..5) day_work_hours * ShiftCostDay(1) * 6 * Team(i,j,2) +
+sum(i in 1..6,j in 1..5) evening_work_hours * ShiftCostEvening(1) * 6 * Team(i,j,3) +
+sum(i in 1..6,j in 1..5) night_work_hours * ShiftCostNight(1) * 6 * Team(i,j,4) +
+sum(i in 1..6,j in 6..6) morning_work_hours * ShiftCostSatMorning(1) * 6 * Team(i,j,1) +
+sum(i in 1..6,j in 6..6) day_work_hours * ShiftCostSatDay(1) * 6 * Team(i,j,2) +
+sum(i in 1..6,j in 6..6) evening_work_hours * ShiftCostSatEvening(1) * 6 * Team(i,j,3) +
+sum(i in 1..6,j in 6..6) night_work_hours * ShiftCostSatNight(1) * 6 * Team(i,j,4) +
+sum(i in 1..6,j in 7..7) morning_work_hours * ShiftCostSunMorning(1) * 6 * Team(i,j,1) +
+sum(i in 1..6,j in 7..7) day_work_hours * ShiftCostSunDay(1) * 6 * Team(i,j,2) +
+sum(i in 1..6,j in 7..7) evening_work_hours * ShiftCostSunEvening(1) * 6 * Team(i,j,3) +
+sum(i in 1..6,j in 7..7) night_work_hours * ShiftCostSunNight(1) * 6 * Team(i,j,4)
+
+forall(i in 1..6,j in 1..7,k in 1..4) do
+ Team(i,j,k) is_binary
+end-do
+
+
+forall(i in 1..6,j in 1..5)do
+    sum(k in 1..4) Team(i,j,k)<=6
+end-do
+forall(i in 1..6,j in 6..7)do
+    sum(k in 1..4) Team(i,j,k)<=0.5*6
+end-do
+! constrain 5,6
+forall(i in 1..6)do
+    sum(d in 1..7, s in 1..4) 9*Team(i,d,s)>=36*6
+end-do
+
+forall(i in 1..6)do
+    sum(d in 1..7, s in 1..4) 9*Team(i,d,s)<=38*6
+end-do
+
+! constrain 7
+forall(i in 0..23) do
+! monday
+if i >= start_hour_morning/100 and i < end_hour_morning/100 then
+    demand_monday(i)<=((sum(j in 1..6) Team(j,1,1))-1)*6
+      demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,1))-1)*6
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,1))-1)*6
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,1))-1)*6
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,1))-1)*6
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,1))-1)*6
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,1))-1)*6
+
+end-if
+if i >= start_hour_day/100 and i < end_hour_day/100 then
+    demand_monday(i)<=((sum(j in 1..6) Team(j,1,2))-1)*6
+     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,2))-1)*6
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,2))-1)*6
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,2))-1)*6
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,2))-1)*6
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,2))-1)*6
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,2))-1)*6
+
+end-if
+if i >= start_hour_evening/100 and i < end_hour_evening/100 then
+    demand_monday(i)<=((sum(j in 1..6) Team(j,1,3))-1)*6
+     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,3))-1)*6
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,3))-1)*6
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,3))-1)*6
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,3))-1)*6
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,3))-1)*6
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,3))-1)*6
+
+end-if
+if i >= start_hour_night/100 and i < end_hour_night/100 then
+    demand_monday(i)<=((sum(j in 1..6) Team(j,1,4))-1)*6
+     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,4))-1)*6
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,4))-1)*6
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,4))-1)*6
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,4))-1)*6
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,4))-1)*6
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,4))-1)*6
+
+end-if
+end-do
 reading_data_from_file
 data_preprocessing
 printing_all_data
@@ -147,17 +243,9 @@ printing_all_data
 
 
 
-Cost := sum(i in 1..6,j in 1..5) morning_work_hours * ShiftCostMorning(1) * 6 * Team(i,j,1) +
-sum(i in 1..6,j in 1..5) day_work_hours * ShiftCostDay(1) * 6 * Team(i,j,2) +
-sum(i in 1..6,j in 1..5) evening_work_hours * ShiftCostEvening(1) * 6 * Team(i,j,3) +
-sum(i in 1..6,j in 1..5) night_work_hours * ShiftCostNight(1) * 6 * Team(i,j,4) +
-sum(i in 1..6,j in 6..6) morning_work_hours * ShiftCostSatMorning(1) * 6 * Team(i,j,1) +
-sum(i in 1..6,j in 6..6) day_work_hours * ShiftCostSatDay(1) * 6 * Team(i,j,2) +
-sum(i in 1..6,j in 6..6) evening_work_hours * ShiftCostSatDay(1) * 6 * Team(i,j,2) +
-
-
-
-
+minimise(TotalCost)
+print_result
+writeln("sol:",getobjval)
 !  10*coats + 4*jackets <= 200
 !  3*coats + 5*jackets <= 150
 
