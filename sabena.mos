@@ -38,23 +38,24 @@ declarations
     NightBonus: array(1..1) of real
 
     MaxNumberOfTeam: integer
+    team_size = 6000000000000000000000
 
+    CBuffer = 0.25
+    start_hour_morning = 5
+    end_hour_morning = 10
+    morning_work_hours = end_hour_morning-start_hour_morning
 
-    start_hour_morning = 0600
-    end_hour_morning = 1500
-    morning_work_hours = 9
+    start_hour_day = 10
+    end_hour_day = 19
+    day_work_hours =end_hour_day-start_hour_day
 
-    start_hour_day = 0700
-    end_hour_day = 1500
-    day_work_hours =8
+    start_hour_evening = 17
+    end_hour_evening = 23
+    evening_work_hours = end_hour_evening-start_hour_evening
 
-    start_hour_evening = 1445
-    end_hour_evening = 2345
-    evening_work_hours = 9
-
-    start_hour_night =  2230
-    end_hour_night = 0730
-    night_work_hours = 9
+    start_hour_night =  23
+    end_hour_night = 7
+    night_work_hours = 24-start_hour_night+end_hour_night
 
 
     demand_monday: array(hours_of_a_day) of real
@@ -79,7 +80,20 @@ declarations
 
 
 end-declarations
-
+procedure print_status
+  declarations
+    status: string
+  end-declarations
+  case getprobstat of
+    XPRS_OPT: status:="Optimum found"
+    XPRS_UNF: status:="Unfinished"
+    XPRS_INF: status:="Infeasible"
+    XPRS_UNB: status:="Unbounded"
+    XPRS_OTH: status:="Failed"
+    else      status:="???"
+  end-case
+  writeln("Problem status: ", status)
+end-procedure
 procedure reading_data_from_file
 initializations from dir
   [FlightNo,Airline,STADay,STATime,STDDay,STDTime,Demand,NoHoursStayed] as "[Sheet1$A2:I300]"
@@ -130,7 +144,7 @@ end-procedure
 procedure printing_all_data
 writeln(FlightNo,"\n",Airline,"\n", STADay,"\n",STATime ,"\n",STDDay ,"\n",STDTime,"\n",Demand,"\n",NoHoursStayed,"\n",DemandEachHour)
 
-writeln(demand_monday,"\n",demand_tuesday,"\n", demand_wednesday,"\n",demand_thursday ,"\n",demand_friday ,"\n",demand_saturday,"\n",demand_sunday)
+writeln("demand_monday-sun",demand_monday,"\n",demand_tuesday,"\n", demand_wednesday,"\n",demand_thursday ,"\n",demand_friday ,"\n",demand_saturday,"\n",demand_sunday)
 
 writeln(ShiftCostMorning,ShiftCostDay,ShiftCostEvening,ShiftCostNight,NightBonus)
 
@@ -157,107 +171,186 @@ writeln("------------------------------------------------------")
 writeln("")
 end-procedure
 
+procedure cons
+
+! constrain 2
+forall(i in 1..6,j in 1..5)do
+    sum(k in 1..4) Team(i,j,k)<=6
+end-do
+! constrain 3
+forall(i in 1..6,j in 6..7)do
+    sum(k in 1..4) Team(i,j,k)<=0.5*6
+end-do
+! ! constrain 4
+forall(i in 1..6)do
+    sum(d in 1..7, s in 1..4) 9*Team(i,d,s)>=36
+end-do
+
+forall(i in 1..6)do
+    sum(d in 1..7, s in 1..4) 9*Team(i,d,s)<=38
+end-do
+
+! constrain 7
+forall(i in start_hour_morning..end_hour_morning) do
+    demand_monday(i)<=((sum(j in 1..6) Team(j,1,1))-1)*team_size
+      demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,1))-1)*team_size
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,1))-1)*team_size
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,1))-1)*team_size
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,1))-1)*team_size
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,1))-1)*team_size
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,1))-1)*team_size
+end-do
+forall(i in start_hour_day..end_hour_day) do
+    demand_monday(i)<=((sum(j in 1..6) Team(j,1,2))-1)*team_size
+      demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,2))-1)*team_size
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,2))-1)*team_size
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,2))-1)*team_size
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,2))-1)*team_size
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,2))-1)*team_size
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,2))-1)*team_size
+end-do
+forall(i in start_hour_evening..end_hour_evening) do
+
+    demand_monday(i)<=((sum(j in 1..6) Team(j,1,3))-1)*team_size
+    demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,3))-1)*team_size
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,3))-1)*team_size
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,3))-1)*team_size
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,3))-1)*team_size
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,3))-1)*team_size
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,3))-1)*team_size
+end-do
+forall(i in start_hour_night..23) do
+demand_monday(i)<=((sum(j in 1..6) Team(j,1,4))-1)*team_size
+    demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,4))-1)*team_size
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,4))-1)*team_size
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,4))-1)*team_size
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,4))-1)*team_size
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,4))-1)*team_size
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,4))-1)*team_size
+
+end-do
+forall(i in 0..end_hour_night) do
+demand_monday(i)<=((sum(j in 1..6) Team(j,1,4))-1)*team_size
+    demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,4))-1)*team_size
+        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,4))-1)*team_size
+          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,4))-1)*team_size
+            demand_friday(i)<=((sum(j in 1..6) Team(j,5,4))-1)*team_size
+              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,4))-1)*team_size
+                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,4))-1)*team_size
+
+end-do
 
 
-TotalCost := sum(i in 1..6,j in 1..5) morning_work_hours * ShiftCostMorning(1) * 6 * Team(i,j,1) +
-sum(i in 1..6,j in 1..5) day_work_hours * ShiftCostDay(1) * 6 * Team(i,j,2) +
-sum(i in 1..6,j in 1..5) evening_work_hours * ShiftCostEvening(1) * 6 * Team(i,j,3) +
-sum(i in 1..6,j in 1..5) night_work_hours * ShiftCostNight(1) * 6 * Team(i,j,4) +
-sum(i in 1..6,j in 6..6) morning_work_hours * ShiftCostSatMorning(1) * 6 * Team(i,j,1) +
-sum(i in 1..6,j in 6..6) day_work_hours * ShiftCostSatDay(1) * 6 * Team(i,j,2) +
-sum(i in 1..6,j in 6..6) evening_work_hours * ShiftCostSatEvening(1) * 6 * Team(i,j,3) +
-sum(i in 1..6,j in 6..6) night_work_hours * ShiftCostSatNight(1) * 6 * Team(i,j,4) +
-sum(i in 1..6,j in 7..7) morning_work_hours * ShiftCostSunMorning(1) * 6 * Team(i,j,1) +
-sum(i in 1..6,j in 7..7) day_work_hours * ShiftCostSunDay(1) * 6 * Team(i,j,2) +
-sum(i in 1..6,j in 7..7) evening_work_hours * ShiftCostSunEvening(1) * 6 * Team(i,j,3) +
-sum(i in 1..6,j in 7..7) night_work_hours * ShiftCostSunNight(1) * 6 * Team(i,j,4)
+
+! ! constrain 8
+! forall(i in start_hour_morning..end_hour_morning) do
+!     demand_monday(i)<=(sum(j in 1..6) Team(j,1,1))*team_size
+!       demand_tuesday(i)<=(sum(j in 1..6) Team(j,2,1))*team_size
+!         demand_wednesday(i)<=(sum(j in 1..6) Team(j,3,1))*team_size
+!           demand_thursday(i)<=(sum(j in 1..6) Team(j,4,1))*team_size
+!             demand_friday(i)<=(sum(j in 1..6) Team(j,5,1))*team_size
+!               demand_saturday(i)<=(sum(j in 1..6) Team(j,6,1))*team_size
+!                 demand_sunday(i)<=(sum(j in 1..6) Team(j,7,1))*team_size
+! end-do
+! forall(i in start_hour_day..end_hour_day) do
+!     demand_monday(i)<=((sum(j in 1..6) Team(j,1,2)))*team_size
+!       demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,2)))*team_size
+!         demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,2)))*team_size
+!           demand_thursday(i)<=((sum(j in 1..6) Team(j,4,2)))*team_size
+!             demand_friday(i)<=((sum(j in 1..6) Team(j,5,2)))*team_size
+!               demand_saturday(i)<=((sum(j in 1..6) Team(j,6,2)))*team_size
+!                 demand_sunday(i)<=((sum(j in 1..6) Team(j,7,2)))*team_size
+! end-do
+! forall(i in start_hour_evening..end_hour_evening) do
+
+!     demand_monday(i)<=((sum(j in 1..6) Team(j,1,3)))*team_size
+!     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,3)))*team_size
+!         demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,3)))*team_size
+!           demand_thursday(i)<=((sum(j in 1..6) Team(j,4,3)))*team_size
+!             demand_friday(i)<=((sum(j in 1..6) Team(j,5,3)))*team_size
+!               demand_saturday(i)<=((sum(j in 1..6) Team(j,6,3)))*team_size
+!                 demand_sunday(i)<=((sum(j in 1..6) Team(j,7,3)))*team_size
+! end-do
+! forall(i in start_hour_night..23) do
+! demand_monday(i)<=((sum(j in 1..6) Team(j,1,4)))*team_size
+!     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,4)))*team_size
+!         demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,4)))*team_size
+!           demand_thursday(i)<=((sum(j in 1..6) Team(j,4,4)))*team_size
+!             demand_friday(i)<=((sum(j in 1..6) Team(j,5,4)))*team_size
+!               demand_saturday(i)<=((sum(j in 1..6) Team(j,6,4)))*team_size
+!                 demand_sunday(i)<=((sum(j in 1..6) Team(j,7,4)))*team_size
+
+! end-do
+! forall(i in 0..end_hour_night) do
+! demand_monday(i)<=((sum(j in 1..6) Team(j,1,4)))*team_size
+!     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,4)))*team_size
+!         demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,4)))*team_size
+!           demand_thursday(i)<=((sum(j in 1..6) Team(j,4,4)))*team_size
+!             demand_friday(i)<=((sum(j in 1..6) Team(j,5,4)))*team_size
+!               demand_saturday(i)<=((sum(j in 1..6) Team(j,6,4)))*team_size
+!                 demand_sunday(i)<=((sum(j in 1..6) Team(j,7,4)))*team_size
+
+! end-do
+! ! constrain 9
+total_demand:= sum(m in size_of_dataset) Demand(m)
+total_demand<=(sum(i in 1..6, j in 1..7, k in 1..4) Team(i,j,k)) *6*((morning_work_hours+day_work_hours+evening_work_hours+night_work_hours)/4)
+
+! ! constrain 10
+forall(i in 1..6,j in 1..7)do
+  (sum(k in 1..4) Team(i,j,k))<=1
+end-do
+
+! ! constrain 11
+! forall(i in 1..4,j in 1..7)do
+!   (sum(k in 1..6) Team(k,j,i))>=1
+! end-do
+
+end-procedure
+
+
+reading_data_from_file
+data_preprocessing
+! printing_all_data
+
 
 forall(i in 1..6,j in 1..7,k in 1..4) do
  Team(i,j,k) is_binary
 end-do
 
-
-forall(i in 1..6,j in 1..5)do
-    sum(k in 1..4) Team(i,j,k)<=6
-end-do
-forall(i in 1..6,j in 6..7)do
-    sum(k in 1..4) Team(i,j,k)<=0.5*6
-end-do
-! constrain 5,6
-forall(i in 1..6)do
-    sum(d in 1..7, s in 1..4) 9*Team(i,d,s)>=36*6
-end-do
-
-forall(i in 1..6)do
-    sum(d in 1..7, s in 1..4) 9*Team(i,d,s)<=38*6
-end-do
-
-! constrain 7
-forall(i in 0..23) do
-! monday
-if i >= start_hour_morning/100 and i < end_hour_morning/100 then
-    demand_monday(i)<=((sum(j in 1..6) Team(j,1,1))-1)*6
-      demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,1))-1)*6
-        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,1))-1)*6
-          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,1))-1)*6
-            demand_friday(i)<=((sum(j in 1..6) Team(j,5,1))-1)*6
-              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,1))-1)*6
-                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,1))-1)*6
-
-end-if
-if i >= start_hour_day/100 and i < end_hour_day/100 then
-    demand_monday(i)<=((sum(j in 1..6) Team(j,1,2))-1)*6
-     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,2))-1)*6
-        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,2))-1)*6
-          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,2))-1)*6
-            demand_friday(i)<=((sum(j in 1..6) Team(j,5,2))-1)*6
-              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,2))-1)*6
-                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,2))-1)*6
-
-end-if
-if i >= start_hour_evening/100 and i < end_hour_evening/100 then
-    demand_monday(i)<=((sum(j in 1..6) Team(j,1,3))-1)*6
-     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,3))-1)*6
-        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,3))-1)*6
-          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,3))-1)*6
-            demand_friday(i)<=((sum(j in 1..6) Team(j,5,3))-1)*6
-              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,3))-1)*6
-                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,3))-1)*6
-
-end-if
-if i >= start_hour_night/100 and i < end_hour_night/100 then
-    demand_monday(i)<=((sum(j in 1..6) Team(j,1,4))-1)*6
-     demand_tuesday(i)<=((sum(j in 1..6) Team(j,2,4))-1)*6
-        demand_wednesday(i)<=((sum(j in 1..6) Team(j,3,4))-1)*6
-          demand_thursday(i)<=((sum(j in 1..6) Team(j,4,4))-1)*6
-            demand_friday(i)<=((sum(j in 1..6) Team(j,5,4))-1)*6
-              demand_saturday(i)<=((sum(j in 1..6) Team(j,6,4))-1)*6
-                demand_sunday(i)<=((sum(j in 1..6) Team(j,7,4))-1)*6
-
-end-if
-end-do
-reading_data_from_file
-data_preprocessing
-printing_all_data
+TotalCost := (sum(i in 1..6,j in 1..5) morning_work_hours * ShiftCostMorning(1) * team_size * Team(i,j,1)) +
+(sum(i in 1..6,j in 1..5) day_work_hours * ShiftCostDay(1) * team_size * Team(i,j,2)) +
+(sum(i in 1..6,j in 1..5) evening_work_hours * ShiftCostEvening(1) * team_size * Team(i,j,3)) +
+(sum(i in 1..6,j in 1..5) night_work_hours * ShiftCostNight(1) * team_size * Team(i,j,4)) +
+(sum(i in 1..6,j in 6..6) morning_work_hours * ShiftCostSatMorning(1) * team_size * Team(i,j,1)) +
+(sum(i in 1..6,j in 6..6) day_work_hours * ShiftCostSatDay(1) * team_size * Team(i,j,2)) +
+(sum(i in 1..6,j in 6..6) evening_work_hours * ShiftCostSatEvening(1) * team_size * Team(i,j,3)) +
+(sum(i in 1..6,j in 6..6) night_work_hours * ShiftCostSatNight(1) * team_size * Team(i,j,4)) +
+(sum(i in 1..6,j in 7..7) morning_work_hours * ShiftCostSunMorning(1) * team_size * Team(i,j,1)) +
+(sum(i in 1..6,j in 7..7) day_work_hours * ShiftCostSunDay(1) * team_size * Team(i,j,2)) +
+(sum(i in 1..6,j in 7..7) evening_work_hours * ShiftCostSunEvening(1) * team_size * Team(i,j,3)) +
+(sum(i in 1..6,j in 7..7) night_work_hours * ShiftCostSunNight(1) * team_size * Team(i,j,4))
 
 
+cons
 
 
+print_status
 minimise(TotalCost)
 print_result
-writeln("sol:",getobjval)
-!  10*coats + 4*jackets <= 200
-!  3*coats + 5*jackets <= 150
+writeln((sum(i in 1..6,j in 1..5) morning_work_hours * ShiftCostMorning(1) * team_size * getsol(Team(i,j,1))) +
+(sum(i in 1..6,j in 1..5) day_work_hours * ShiftCostDay(1) * team_size * getsol(Team(i,j,2))) +
+(sum(i in 1..6,j in 1..5) evening_work_hours * ShiftCostEvening(1) * team_size * getsol(Team(i,j,3))) +
+(sum(i in 1..6,j in 1..5) night_work_hours * ShiftCostNight(1) * team_size * getsol(Team(i,j,4))) +
+(sum(i in 1..6,j in 6..6) morning_work_hours * ShiftCostSatMorning(1) * team_size * getsol(Team(i,j,1))) +
+(sum(i in 1..6,j in 6..6) day_work_hours * ShiftCostSatDay(1) * team_size * getsol(Team(i,j,2))) +
+(sum(i in 1..6,j in 6..6) evening_work_hours * ShiftCostSatEvening(1) * team_size * getsol(Team(i,j,3))) +
+(sum(i in 1..6,j in 6..6) night_work_hours * ShiftCostSatNight(1) * team_size * getsol(Team(i,j,4))) +
+(sum(i in 1..6,j in 7..7) morning_work_hours * ShiftCostSunMorning(1) * team_size * getsol(Team(i,j,1))) +
+(sum(i in 1..6,j in 7..7) day_work_hours * ShiftCostSunDay(1) * team_size * getsol(Team(i,j,2))) +
+(sum(i in 1..6,j in 7..7) evening_work_hours * ShiftCostSunEvening(1) * team_size * getsol(Team(i,j,3))) +
+(sum(i in 1..6,j in 7..7) night_work_hours * ShiftCostSunNight(1) * team_size * getsol(Team(i,j,4))))
 
+print_status
+writeln("MinTotalCost:",getobjval)
 
-
-! ! All variables are 0/1
-! coats is_integer
-! jackets is_integer
-
-!  maximize(MaxVal)                 ! Solve the MIP-problem
-
-! ! Print out the solution
-!  writeln("Solution:\n Objective: ", getobjval)
-!  writeln(getsol(coats), "    -    ",getsol(jackets) )
 end-model
